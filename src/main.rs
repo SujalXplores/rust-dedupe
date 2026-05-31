@@ -12,10 +12,10 @@ fn walk(dir: &Path, map: &mut HashMap<u64, Vec<PathBuf>>) {
     if let Ok(rd) = fs::read_dir(dir) {
         for ent in rd.flatten() {
             let p = ent.path();
-            if let Ok(md) = fs::symlink_metadata(&p) {
-                if md.is_symlink() {
-                    continue;
-                } else if md.is_dir() {
+            if let Ok(md) = fs::symlink_metadata(&p)
+                && !md.is_symlink()
+            {
+                if md.is_dir() {
                     walk(&p, map);
                 } else if md.is_file() {
                     map.entry(md.len()).or_default().push(p);
@@ -25,7 +25,7 @@ fn walk(dir: &Path, map: &mut HashMap<u64, Vec<PathBuf>>) {
     }
 }
 
-/// Stream a file through a hasher in fixed chunks — constant RAM, any size.
+/// Stream a file through a hasher in fixed chunks for constant RAM on any size.
 fn hash_file(p: &Path) -> io::Result<u64> {
     let mut f = File::open(p)?;
     let mut h = DefaultHasher::new();
@@ -82,10 +82,11 @@ fn main() {
     for (sz, grp) in &set {
         let rec = sz * (grp.len() as u64 - 1);
         tot += rec;
-        println!("\n{} copies · {} each · {} reclaimable", grp.len(), human(*sz), human(rec));
+        println!("\n{} copies, {} each, {} reclaimable", grp.len(), human(*sz), human(rec));
         for p in grp {
             println!("  {}", p.display());
         }
     }
-    println!("\n\x1b[1;32m{} duplicate sets · {} reclaimable\x1b[0m", set.len(), human(tot));
+    let pl = if set.len() == 1 { "set" } else { "sets" };
+    println!("\n\x1b[1;32m{} duplicate {pl}, {} reclaimable\x1b[0m", set.len(), human(tot));
 }
