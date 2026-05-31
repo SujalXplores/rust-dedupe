@@ -8,19 +8,27 @@ contents are identical, and prints the duplicate sets ranked by how much space
 you'd save — plus a one-line bottom banner with the total.
 
 ```text
-$ cargo run --release -- ~/Downloads
+$ dedupe ./downloads          # a real 645.9 MB folder, scanned in 3.3 s
 
-3 copies · 18.4 MB each · 36.8 MB reclaimable
-  /Users/you/Downloads/installer.dmg
-  /Users/you/Downloads/installer (1).dmg
-  /Users/you/Downloads/old/installer.dmg
+3 copies · 176.89 MB each · 353.78 MB reclaimable
+  downloads/CursorUserSetup-x64-3.5.17 (1).exe
+  downloads/CursorUserSetup-x64-3.5.17.exe
+  downloads/old/CursorUserSetup-x64-3.5.17.exe
 
-2 copies · 4.20 MB each · 4.20 MB reclaimable
-  /Users/you/Downloads/IMG_2231.jpg
-  /Users/you/Pictures/IMG_2231.jpg
+2 copies · 41.46 MB each · 41.46 MB reclaimable
+  downloads/backup/config.zip
+  downloads/config.zip
 
-137 duplicate sets · 2.34 GB reclaimable
+2 copies · 16.15 MB each · 16.15 MB reclaimable
+  downloads/backup/demo-recording.mp4
+  downloads/cursorful-video-1779336877478.mp4
+
+3 duplicate sets · 411.39 MB reclaimable
 ```
+
+> Note the last set: two files with **completely different names** flagged as
+> identical. `dedupe` matches on *content*, never on filename — so renamed
+> copies have nowhere to hide.
 
 ---
 
