@@ -53,15 +53,21 @@ $ rust-dedupe ./downloads
 
 ## Try it in 30 seconds
 
-You need a stable Rust toolchain ([rustup.rs](https://rustup.rs), 1.85+ for edition 2024). Nothing else, no crates to download.
+**No toolchain at all? Just run it with `npx`** (downloads a prebuilt binary, nothing to compile):
 
-**Install the command directly from GitHub — no clone, no setup:**
+```bash
+npx rust-dedupe ~/Downloads
+npx rust-dedupe .                 # scan the current folder
+npx rust-dedupe "C:\Users\you\Pictures"
+```
+
+**Got Rust? Install the command straight from GitHub — no clone, no crates:**
 
 ```bash
 cargo install --git https://github.com/SujalXplores/rust-dedupe.git
 ```
 
-That builds it once and drops a `rust-dedupe` binary on your PATH (`~/.cargo/bin`). Now call it from anywhere:
+That builds it once (stable Rust 1.85+ for edition 2024) and drops a `rust-dedupe` binary on your PATH (`~/.cargo/bin`). Now call it from anywhere:
 
 ```bash
 rust-dedupe ~/Downloads
@@ -69,7 +75,7 @@ rust-dedupe .                 # scan the current folder
 rust-dedupe "C:\Users\you\Pictures"
 ```
 
-To remove it later: `cargo uninstall rust-dedupe`.
+To remove it later: `cargo uninstall rust-dedupe` (or `npm uninstall -g rust-dedupe`).
 
 <details>
 <summary>Prefer to clone and run from source?</summary>

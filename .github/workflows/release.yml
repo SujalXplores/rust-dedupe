@@ -1,0 +1,55 @@
+name: release
+
+# Cuts prebuilt binaries for every supported platform and attaches them to the
+# GitHub Release for the pushed tag. The npm package's postinstall downloader
+# fetches these by predictable asset name, so `npx rust-dedupe` just works.
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: ${{ matrix.asset }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+            bin: rust-dedupe.exe
+            asset: rust-dedupe-win32-x64.exe
+          - os: macos-latest
+            target: x86_64-apple-darwin
+            bin: rust-dedupe
+            asset: rust-dedupe-darwin-x64
+          - os: macos-latest
+            target: aarch64-apple-darwin
+            bin: rust-dedupe
+            asset: rust-dedupe-darwin-arm64
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+            bin: rust-dedupe
+            asset: rust-dedupe-linux-x64
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust (stable) + target
+        run: |
+          rustup update stable
+          rustup target add ${{ matrix.target }}
+
+      - name: Build release binary
+        run: cargo build --release --target ${{ matrix.target }}
+
+      - name: Stage asset
+        shell: bash
+        run: cp "target/${{ matrix.target }}/release/${{ matrix.bin }}" "${{ matrix.asset }}"
+
+      - name: Attach to release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: ${{ matrix.asset }}
