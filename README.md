@@ -56,7 +56,7 @@ $ rust-dedupe ./downloads
 You need a stable Rust toolchain ([rustup.rs](https://rustup.rs)). Nothing else, no crates to download.
 
 ```bash
-git clone <your-repo-url>
+git clone https://github.com/SujalXplores/rust-dedupe.git
 cd rust-dedupe
 
 # run it straight away on any folder
