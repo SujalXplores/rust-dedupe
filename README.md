@@ -53,27 +53,35 @@ $ rust-dedupe ./downloads
 
 ## Try it in 30 seconds
 
-You need a stable Rust toolchain ([rustup.rs](https://rustup.rs)). Nothing else, no crates to download.
+You need a stable Rust toolchain ([rustup.rs](https://rustup.rs), 1.85+ for edition 2024). Nothing else, no crates to download.
+
+**Install the command directly from GitHub — no clone, no setup:**
 
 ```bash
-git clone https://github.com/SujalXplores/rust-dedupe.git
-cd rust-dedupe
-
-# run it straight away on any folder
-cargo run --release -- ~/Downloads
+cargo install --git https://github.com/SujalXplores/rust-dedupe.git
 ```
 
-Prefer a real command on your PATH? Install it once and call `rust-dedupe` from anywhere:
+That builds it once and drops a `rust-dedupe` binary on your PATH (`~/.cargo/bin`). Now call it from anywhere:
 
 ```bash
-cargo install --path .
-
 rust-dedupe ~/Downloads
 rust-dedupe .                 # scan the current folder
 rust-dedupe "C:\Users\you\Pictures"
 ```
 
 To remove it later: `cargo uninstall rust-dedupe`.
+
+<details>
+<summary>Prefer to clone and run from source?</summary>
+
+```bash
+git clone https://github.com/SujalXplores/rust-dedupe.git
+cd rust-dedupe
+cargo run --release -- ~/Downloads   # run from source
+cargo install --path .               # or install from the local checkout
+```
+
+</details>
 
 > **What you will see:** every set of byte-identical files, grouped and ranked by how much space deleting the extras would free, then a one-line total in green at the bottom. Point it at Downloads, a photos folder, or a `node_modules` and watch the number climb.
 
