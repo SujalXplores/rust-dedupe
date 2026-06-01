@@ -6,7 +6,7 @@
 
 [![Rust](https://img.shields.io/badge/Rust-std--only-CE422B?logo=rust&logoColor=white)](https://www.rust-lang.org/)
 [![Dependencies](https://img.shields.io/badge/dependencies-0-44CC11)](Cargo.toml)
-[![src/main.rs](https://img.shields.io/badge/src%2Fmain.rs-92%20lines-blue)](src/main.rs)
+[![src/main.rs](https://img.shields.io/badge/src%2Fmain.rs-98%20lines-blue)](src/main.rs)
 [![vars](https://img.shields.io/badge/every%20var-3%20chars%20max-orange)](src/main.rs)
 [![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 
@@ -99,8 +99,8 @@ This submission was built to a four-dimensional constraint roll. Every dimension
 
 | # | Dimension | Constraint | Our result | Verify it yourself |
 |:-:|:--|:--|:--|:--|
-| **D1** | Short-Name Ninja | Every variable and parameter is 3 chars or fewer | All 17 bindings pass | Read [`src/main.rs`](src/main.rs): `arg buf dir f grp h hm i map n p rec s set sz tot u` |
-| **D2** | Mini Builder | 100 lines or fewer in `src/main.rs` | 92 lines, doc comments included | `(Get-Content src/main.rs).Count` |
+| **D1** | Short-Name Ninja | Every variable and parameter is 3 chars or fewer | All 18 bindings pass | Read [`src/main.rs`](src/main.rs): `arg buf cnt dir f grp h hm i map n p rec s set sz tot u` |
+| **D2** | Mini Builder | 100 lines or fewer in `src/main.rs` | 98 lines, doc comments included | `(Get-Content src/main.rs).Count` |
 | **D3** | File Management | A real file tool | Recursive duplicate-file finder | `cargo run --release -- <any folder>` |
 | **D4** | Rust | Scored on the curve of what Rust enables | Ownership-driven, streaming, std-only | See the algorithm below |
 
@@ -155,7 +155,7 @@ Every box below was checked end to end before submission:
 |:--|:--|
 | `cargo build --release` | clean |
 | `cargo clippy` | warning-free |
-| Line count | 92 of 100 |
+| Line count | 98 of 100 |
 | Variable-name audit | every binding is 3 chars or fewer |
 | Known-tree correctness | exact sets plus exact reclaimable bytes |
 | Same-size, different-content file | correctly not flagged (hash, not just size) |
@@ -166,7 +166,7 @@ Every box below was checked end to end before submission:
 
 ## The entire program
 
-> **Nothing hidden:** here is 100% of the logic, 92 lines, every variable name 3 chars or fewer. Count them. This is the D1 and D2 proof.
+> **Nothing hidden:** here is 100% of the logic, 98 lines, every variable name 3 chars or fewer. Count them. This is the D1 and D2 proof.
 
 <details>
 <summary><b>Click to read the complete <code>src/main.rs</code></b></summary>
@@ -181,8 +181,9 @@ use std::io::{self, Read};
 use std::path::{Path, PathBuf};
 
 /// Pass 1: walk the tree, grouping files by size. Symlinks and unreadable
-/// entries are skipped so we never loop or double-count.
-fn walk(dir: &Path, map: &mut HashMap<u64, Vec<PathBuf>>) {
+/// entries are skipped so we never loop or double-count. `cnt` counts files
+/// seen, so a long scan shows live progress instead of sitting blank.
+fn walk(dir: &Path, map: &mut HashMap<u64, Vec<PathBuf>>, cnt: &mut u64) {
     if let Ok(rd) = fs::read_dir(dir) {
         for ent in rd.flatten() {
             let p = ent.path();
@@ -190,8 +191,10 @@ fn walk(dir: &Path, map: &mut HashMap<u64, Vec<PathBuf>>) {
                 && !md.is_symlink()
             {
                 if md.is_dir() {
-                    walk(&p, map);
+                    walk(&p, map, cnt);
                 } else if md.is_file() {
+                    *cnt += 1;
+                    if cnt.is_multiple_of(512) { eprint!("\r  scanned {cnt} files..."); }
                     map.entry(md.len()).or_default().push(p);
                 }
             }
@@ -228,8 +231,11 @@ fn human(sz: u64) -> String {
 
 fn main() {
     let arg = env::args().nth(1).unwrap_or_else(|| ".".into());
+    eprintln!("rust-dedupe: scanning {arg} ... (Ctrl-C to stop)");
     let mut map: HashMap<u64, Vec<PathBuf>> = HashMap::new();
-    walk(Path::new(&arg), &mut map);
+    let mut cnt = 0u64;
+    walk(Path::new(&arg), &mut map, &mut cnt);
+    eprintln!("\r  scanned {cnt} files, comparing same-size candidates...");
 
     // Pass 2: hash only files whose size collides with another's.
     let mut set: Vec<(u64, Vec<PathBuf>)> = Vec::new();
@@ -277,6 +283,7 @@ fn main() {
 - Hashing uses the standard library's `DefaultHasher` (SipHash 1-3). A 64-bit collision among files of identical size is astronomically unlikely for everyday deduplication. A final byte-for-byte compare would make matches provably exact, and it is left as future work to stay inside the 100-line budget. We know the trade-off and we chose the constraint.
 - Zero-byte files all share size 0 and hash equal, so they are reported together. That is honest, they really are byte-identical.
 - Symlinks are skipped during the walk to avoid cycles and double-counting.
+- Progress (`scanning ...`, a live file counter) is written to **stderr**, so on a huge tree you get immediate feedback instead of a blank screen, while **stdout** stays a clean, pipeable report.
 
 ---
 
@@ -288,7 +295,7 @@ MIT, see [LICENSE](LICENSE). Use it, fork it, reclaim your disk.
 
 ---
 
-Built in 92 lines of dependency-free Rust.
+Built in 98 lines of dependency-free Rust.
 Now go find out what is hiding in your Downloads folder.
 
 </div>

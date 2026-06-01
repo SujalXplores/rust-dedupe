@@ -1,22 +1,22 @@
-"use strict";
+'use strict';
 
 // Resolves the right prebuilt binary for the host, and downloads it from the
 // matching GitHub Release on demand. Used by both the postinstall step and the
 // launcher (so `npx --ignore-scripts` still works — the launcher lazily fetches).
 
-const fs = require("fs");
-const path = require("path");
-const https = require("https");
-const { version } = require("../package.json");
+const fs = require('fs');
+const path = require('path');
+const https = require('https');
+const { version } = require('../package.json');
 
-const REPO = "SujalXplores/rust-dedupe";
+const REPO = 'SujalXplores/rust-dedupe';
 
 // Node platform+arch  ->  release asset name produced by .github/workflows/release.yml
 const ASSETS = {
-  "win32 x64": "rust-dedupe-win32-x64.exe",
-  "darwin x64": "rust-dedupe-darwin-x64",
-  "darwin arm64": "rust-dedupe-darwin-arm64",
-  "linux x64": "rust-dedupe-linux-x64",
+  'win32 x64': 'rust-dedupe-win32-x64.exe',
+  'darwin x64': 'rust-dedupe-darwin-x64',
+  'darwin arm64': 'rust-dedupe-darwin-arm64',
+  'linux x64': 'rust-dedupe-linux-x64',
 };
 
 function assetName() {
@@ -32,29 +32,85 @@ function assetName() {
 }
 
 function binaryPath() {
-  const ext = process.platform === "win32" ? ".exe" : "";
-  return path.join(__dirname, "..", "bin", `rust-dedupe${ext}`);
+  const ext = process.platform === 'win32' ? '.exe' : '';
+  return path.join(__dirname, '..', 'bin', `rust-dedupe${ext}`);
 }
 
 function downloadTo(url, dest) {
   return new Promise((resolve, reject) => {
-    https
-      .get(url, { headers: { "User-Agent": "rust-dedupe-npm-installer" } }, (res) => {
-        // GitHub release downloads redirect to a storage host.
-        if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
-          res.resume();
-          return resolve(downloadTo(res.headers.location, dest));
-        }
-        if (res.statusCode !== 200) {
-          res.resume();
-          return reject(new Error(`download failed (HTTP ${res.statusCode}) for ${url}`));
-        }
-        const file = fs.createWriteStream(dest);
-        res.pipe(file);
-        file.on("finish", () => file.close((err) => (err ? reject(err) : resolve())));
-        file.on("error", reject);
-      })
-      .on("error", reject);
+    const req = https
+      .get(
+        url,
+        { headers: { 'User-Agent': 'rust-dedupe-npm-installer' } },
+        (res) => {
+          // GitHub release downloads redirect to a storage host.
+          if (
+            res.statusCode >= 300 &&
+            res.statusCode < 400 &&
+            res.headers.location
+          ) {
+            res.resume();
+            return resolve(downloadTo(res.headers.location, dest));
+          }
+          if (res.statusCode !== 200) {
+            res.resume();
+            return reject(
+              new Error(`download failed (HTTP ${res.statusCode}) for ${url}`),
+            );
+          }
+          // Stream to a temp file, then atomically rename, so an interrupted
+          // download can never leave a half-written binary behind.
+          const tmp = `${dest}.${process.pid}.tmp`;
+          const total = Number(res.headers['content-length']) || 0;
+          let seen = 0;
+          let nextTick = Date.now();
+          if (process.stderr.isTTY)
+            process.stderr.write('rust-dedupe: downloading binary... ');
+          res.on('data', (chunk) => {
+            seen += chunk.length;
+            // Throttle progress writes so we don't spam non-interactive logs.
+            if (process.stderr.isTTY && Date.now() - nextTick > 200) {
+              nextTick = Date.now();
+              const pct = total
+                ? ` ${Math.floor((seen / total) * 100)}%`
+                : ` ${(seen / 1048576).toFixed(1)} MB`;
+              process.stderr.write(
+                `\rrust-dedupe: downloading binary...${pct}`,
+              );
+            }
+          });
+          const file = fs.createWriteStream(tmp);
+          res.pipe(file);
+          file.on('finish', () =>
+            file.close((err) => {
+              if (err) return reject(err);
+              try {
+                fs.renameSync(tmp, dest);
+                if (process.stderr.isTTY)
+                  process.stderr.write(
+                    '\rrust-dedupe: binary ready          \n',
+                  );
+                resolve();
+              } catch (e) {
+                reject(e);
+              }
+            }),
+          );
+          file.on('error', (err) => {
+            fs.rm(tmp, { force: true }, () => reject(err));
+          });
+        },
+      )
+      .on('error', reject);
+    // Don't let a stalled connection hang the install/run forever — fail fast
+    // with a clear message so the user never stares at a blank screen.
+    req.setTimeout(30000, () => {
+      req.destroy(
+        new Error(
+          `download timed out after 30s for ${url}. Check your network and retry.`,
+        ),
+      );
+    });
   });
 }
 
@@ -66,7 +122,7 @@ async function ensureBinary() {
   const url = `https://github.com/${REPO}/releases/download/v${version}/${assetName()}`;
   fs.mkdirSync(path.dirname(dest), { recursive: true });
   await downloadTo(url, dest);
-  if (process.platform !== "win32") fs.chmodSync(dest, 0o755);
+  if (process.platform !== 'win32') fs.chmodSync(dest, 0o755);
   return dest;
 }
 

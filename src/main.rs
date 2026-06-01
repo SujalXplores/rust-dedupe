@@ -7,8 +7,9 @@ use std::io::{self, Read};
 use std::path::{Path, PathBuf};
 
 /// Pass 1: walk the tree, grouping files by size. Symlinks and unreadable
-/// entries are skipped so we never loop or double-count.
-fn walk(dir: &Path, map: &mut HashMap<u64, Vec<PathBuf>>) {
+/// entries are skipped so we never loop or double-count. `cnt` counts files
+/// seen, so a long scan shows live progress instead of sitting blank.
+fn walk(dir: &Path, map: &mut HashMap<u64, Vec<PathBuf>>, cnt: &mut u64) {
     if let Ok(rd) = fs::read_dir(dir) {
         for ent in rd.flatten() {
             let p = ent.path();
@@ -16,8 +17,10 @@ fn walk(dir: &Path, map: &mut HashMap<u64, Vec<PathBuf>>) {
                 && !md.is_symlink()
             {
                 if md.is_dir() {
-                    walk(&p, map);
+                    walk(&p, map, cnt);
                 } else if md.is_file() {
+                    *cnt += 1;
+                    if cnt.is_multiple_of(512) { eprint!("\r  scanned {cnt} files..."); }
                     map.entry(md.len()).or_default().push(p);
                 }
             }
@@ -54,8 +57,11 @@ fn human(sz: u64) -> String {
 
 fn main() {
     let arg = env::args().nth(1).unwrap_or_else(|| ".".into());
+    eprintln!("rust-dedupe: scanning {arg} ... (Ctrl-C to stop)");
     let mut map: HashMap<u64, Vec<PathBuf>> = HashMap::new();
-    walk(Path::new(&arg), &mut map);
+    let mut cnt = 0u64;
+    walk(Path::new(&arg), &mut map, &mut cnt);
+    eprintln!("\r  scanned {cnt} files, comparing same-size candidates...");
 
     // Pass 2: hash only files whose size collides with another's.
     let mut set: Vec<(u64, Vec<PathBuf>)> = Vec::new();
