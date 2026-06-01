@@ -53,13 +53,23 @@ $ rust-dedupe ./downloads
 
 ## Try it in 30 seconds
 
+> ### ⚡ Quick demo, copy-paste this
+>
+> ```bash
+> npx rust-dedupe@1.0.1 .
+> ```
+>
+> That scans the current folder. No install, no Rust, no config. It downloads a prebuilt binary, prints live progress while it scans, and ends with a one-line total of exactly how much space you can reclaim. Point it anywhere: swap `.` for `~/Downloads` or any path.
+
 **No toolchain at all? Just run it with `npx`** (downloads a prebuilt binary, nothing to compile):
 
 ```bash
-npx rust-dedupe ~/Downloads
-npx rust-dedupe .                 # scan the current folder
-npx rust-dedupe "C:\Users\you\Pictures"
+npx rust-dedupe@1.0.1 ~/Downloads
+npx rust-dedupe@1.0.1 .                 # scan the current folder
+npx rust-dedupe@1.0.1 "C:\Users\you\Pictures"
 ```
+
+> Pinning `@1.0.1` guarantees the latest build (live progress output, resilient downloader). Plain `npx rust-dedupe` works too, but may reuse an older cached binary.
 
 **Got Rust? Install the command straight from GitHub — no clone, no crates:**
 
